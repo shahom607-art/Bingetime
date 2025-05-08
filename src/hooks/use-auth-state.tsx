@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useContext, createContext, type ReactNode } from 'react';
 import type { User } from 'firebase/auth';
-import { auth as firebaseAuthInstance } from '@/lib/firebase/config'; // Aliased import
+import { auth as firebaseAuthInstance, firebaseInitializationError } from '@/lib/firebase/config';
 import type { UserProfile } from '@/types';
 
 interface AuthContextType {
   user: User | null;
-  userProfile: UserProfile | null; // Extended user profile from Firestore
+  userProfile: UserProfile | null;
   loading: boolean;
   error: Error | null;
 }
@@ -21,22 +21,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!firebaseAuthInstance) {
-      console.warn('Firebase Auth is not initialized. User authentication will not work. Check Firebase configuration.');
+    setLoading(true);
+
+    if (firebaseInitializationError) {
+      setError(firebaseInitializationError);
       setUser(null);
       setUserProfile(null);
       setLoading(false);
-      setError(new Error("Firebase Auth not available. Please check your Firebase project configuration in .env.local."));
-      return () => {}; // Return an empty function for cleanup
+      return;
+    }
+    
+    if (!firebaseAuthInstance) {
+      setError(new Error("Firebase Authentication services are not available. This could be due to missing or incomplete Firebase configuration. Please ensure all 'NEXT_PUBLIC_FIREBASE_*' environment variables are correctly set in your .env.local file, and that your Firebase app is properly configured in the Firebase console (e.g., Authentication methods enabled)."));
+      setUser(null);
+      setUserProfile(null);
+      setLoading(false);
+      return;
     }
 
-    setLoading(true); // Reset loading state if firebaseAuthInstance is available
     const unsubscribe = firebaseAuthInstance.onAuthStateChanged(async (firebaseUser) => {
-      setError(null);
+      setError(null); // Clear previous errors on successful listener setup
       if (firebaseUser) {
         setUser(firebaseUser);
-        // In a real app, you'd fetch the userProfile from Firestore here
-        // For now, we'll create a mock profile based on the firebaseUser
         const profile: UserProfile = {
           uid: firebaseUser.uid,
           displayName: firebaseUser.displayName,
@@ -53,12 +59,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }, (err) => {
       console.error("Firebase Auth state change error:", err);
-      setError(err);
+      setError(err); // Set specific Firebase error from onAuthStateChanged
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []); // firebaseAuthInstance is stable, no need to add to deps if it doesn't change after initial load
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, userProfile, loading, error }}>

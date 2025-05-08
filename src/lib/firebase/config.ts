@@ -21,6 +21,7 @@ const firebaseConfigValues: FirebaseOptions = {
 let app: FirebaseApp | null = uninitializedFirebase.app;
 let auth: Auth | null = uninitializedFirebase.auth;
 let db: Firestore | null = uninitializedFirebase.db;
+export let firebaseInitializationError: Error | null = null;
 
 if (
   firebaseConfigValues.apiKey &&
@@ -36,17 +37,27 @@ if (
       app = currentAppInstance;
       auth = getAuth(currentAppInstance);
       db = getFirestore(currentAppInstance);
+      firebaseInitializationError = null; // Explicitly null on success
     } catch (error) {
       console.error("Firebase initialization failed:", error);
+      firebaseInitializationError = error as Error;
       // app, auth, db remain null as per uninitializedFirebase
     }
   }
 } else {
-  console.warn(
-    "Firebase configuration is incomplete. Essential values (apiKey, authDomain, projectId) are missing. " +
-    "Firebase services will not be available. " +
-    "Please check your NEXT_PUBLIC_FIREBASE_ environment variables in .env.local."
-  );
+  const missingKeys = [
+    !firebaseConfigValues.apiKey && "NEXT_PUBLIC_FIREBASE_API_KEY",
+    !firebaseConfigValues.authDomain && "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
+    !firebaseConfigValues.projectId && "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+  ].filter(Boolean).join(', ');
+
+  const warningMessage =
+    "Firebase configuration is incomplete. Essential values (" +
+    (missingKeys || "apiKey, authDomain, projectId") +
+    ") are missing or undefined. Firebase services will not be available. " +
+    "Please check your NEXT_PUBLIC_FIREBASE_ environment variables in .env.local and ensure they are correctly loaded.";
+  console.warn(warningMessage);
+  firebaseInitializationError = new Error(warningMessage);
   // app, auth, db are already null from uninitializedFirebase
 }
 
