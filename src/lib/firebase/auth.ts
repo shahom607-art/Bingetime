@@ -8,7 +8,7 @@ const provider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async (): Promise<UserProfile | null> => {
   if (!firebaseAuthInstance || !firebaseDbInstance) {
-    console.error("Firebase Auth or Firestore not initialized. Cannot sign in with Google.");
+    // console.error("Firebase Auth or Firestore not initialized. Cannot sign in with Google."); // Removed console.error
     throw new Error("Firebase not configured. Sign-in unavailable.");
   }
   try {
@@ -53,9 +53,8 @@ export const signInWithGoogle = async (): Promise<UserProfile | null> => {
 
 export const signOut = async (): Promise<void> => {
   if (!firebaseAuthInstance) {
-    console.error("Firebase Auth not initialized. Cannot sign out.");
-    // Depending on desired behavior, could throw or just log
-    return; // Silently fail if auth not ready, or throw new Error("Firebase not configured.");
+    // console.error("Firebase Auth not initialized. Cannot sign out."); // Removed console.error
+    throw new Error("Firebase not configured. Sign-out unavailable."); // Throw an error
   }
   try {
     await firebaseSignOut(firebaseAuthInstance);
