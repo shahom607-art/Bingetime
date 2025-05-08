@@ -6,25 +6,18 @@ import Watchlist from '@/components/watchlist';
 import { useWatchlist } from '@/hooks/use-watchlist';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { Button } from '@/components/ui/button';
-import { signInWithGoogle } from '@/lib/firebase/auth';
+// import { signInWithGoogle } from '@/lib/firebase/auth'; // No longer needed
 import { Loader2, LogIn, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import AuthDialog from '@/components/auth/auth-dialog'; // Import the new AuthDialog
 
 export default function HomePage() {
   const { totalWatchTime, loading: watchlistLoading, error: watchlistError } = useWatchlist();
   const { user, loading: authLoading, error: authError } = useAuthState();
-  const { toast } = useToast();
+  const { toast } = useToast(); // Keep toast for other potential messages
 
-  const handleSignIn = async () => {
-    try {
-      await signInWithGoogle();
-      toast({ title: 'Signed In', description: 'Welcome to BingeTime!' });
-    } catch (error: any) {
-      console.error('Sign in failed:', error);
-      toast({ title: 'Sign In Failed', description: error.message || 'Could not sign you in. Please try again.', variant: 'destructive' });
-    }
-  };
+  // handleSignIn is no longer needed here as AuthDialog handles sign-in internally
 
   if (authLoading || watchlistLoading) {
     return (
@@ -66,11 +59,16 @@ export default function HomePage() {
         <section className="w-full max-w-md mx-auto p-6 bg-card border rounded-lg shadow-md text-center">
           <h2 className="text-xl font-semibold mb-3">Sign in to save your progress!</h2>
           <p className="text-muted-foreground mb-4">
-            Guests can track their time, but signing in with Google syncs your watchlist across devices.
+            Guests can track their time, but signing in syncs your watchlist across devices.
           </p>
-          <Button onClick={handleSignIn} size="lg" disabled={!!authError}>
-            <LogIn className="mr-2 h-5 w-5" /> Sign In with Google
-          </Button>
+          <AuthDialog
+            trigger={
+              <Button size="lg" disabled={!!authError}>
+                <LogIn className="mr-2 h-5 w-5" /> Sign In / Create Account
+              </Button>
+            }
+            initialTab="signin"
+          />
         </section>
       )}
       
