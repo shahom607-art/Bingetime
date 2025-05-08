@@ -1,3 +1,4 @@
+
 // IMPORTANT: THIS IS A SIMPLIFIED IMPLEMENTATION FOR THE FRONTEND.
 // In a real-world application, API keys should NOT be exposed on the client-side.
 // API calls should be proxied through a backend (e.g., Firebase Functions) to protect the API key.
@@ -36,8 +37,8 @@ async function fetchTmdb(endpoint: string, params: Record<string, string> = {}):
       return {
         results: [
           { id: 299534, title: "Avengers: Endgame (Mock)", media_type: "movie", poster_path: "/or06FN3Dka5tukK1e9sl16pB3iy.jpg", release_date: "2019-04-24" },
-          { id: 1399, name: "Game of Thrones (Mock)", media_type: "tv", poster_path конфигурация/u3bZgnGQ9T01sWNhyveQz0wz0IL.jpg", first_air_date: "2011-04-17" },
-          { id: 603, title: "The Matrix (Mock)", media_type: "movie", poster_path_path: "/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg", release_date: "1999-03-30" }
+          { id: 1399, name: "Game of Thrones (Mock)", media_type: "tv", poster_path: "/u3bZgnGQ9T01sWNhyveQz0wz0IL.jpg", first_air_date: "2011-04-17" },
+          { id: 603, title: "The Matrix (Mock)", media_type: "movie", poster_path: "/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg", release_date: "1999-03-30" }
         ].filter(item => (item.title || item.name)?.toLowerCase().includes(params.query?.toLowerCase() || ""))
       };
     }
