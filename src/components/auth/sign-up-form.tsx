@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { FC } from 'react';
@@ -6,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+// import { Label } from '@/components/ui/label'; // No longer used
 import {
   Form,
   FormControl,
@@ -19,6 +20,7 @@ import { signUpWithEmailPassword } from '@/lib/firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const signUpSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -31,13 +33,14 @@ const signUpSchema = z.object({
 
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
-interface SignUpFormProps {
-  onSignUpSuccess?: () => void;
-}
+// interface SignUpFormProps { // Prop no longer needed
+//   onSignUpSuccess?: () => void;
+// }
 
-const SignUpForm: FC<SignUpFormProps> = ({ onSignUpSuccess }) => {
+const SignUpForm: FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -52,10 +55,11 @@ const SignUpForm: FC<SignUpFormProps> = ({ onSignUpSuccess }) => {
     try {
       await signUpWithEmailPassword(values.email, values.password);
       toast({
-        title: 'Account Created',
-        description: 'Welcome to BingeTime! You can now sign in.',
+        title: 'Account Created!',
+        description: 'Welcome to BingeTime! Please sign in with your new credentials.',
       });
-      onSignUpSuccess?.(); // e.g., switch to sign-in tab or close dialog
+      // onSignUpSuccess?.(); // Prop removed
+      router.push('/login'); // Redirect to login page
     } catch (error: any) {
       toast({
         title: 'Sign Up Failed',
@@ -77,7 +81,7 @@ const SignUpForm: FC<SignUpFormProps> = ({ onSignUpSuccess }) => {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="you@example.com" {...field} />
+                <Input type="email" placeholder="you@example.com" {...field} autoComplete="email"/>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -90,7 +94,7 @@ const SignUpForm: FC<SignUpFormProps> = ({ onSignUpSuccess }) => {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
+                <Input type="password" placeholder="••••••••" {...field} autoComplete="new-password"/>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -103,7 +107,7 @@ const SignUpForm: FC<SignUpFormProps> = ({ onSignUpSuccess }) => {
             <FormItem>
               <FormLabel>Confirm Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
+                <Input type="password" placeholder="••••••••" {...field} autoComplete="new-password"/>
               </FormControl>
               <FormMessage />
             </FormItem>

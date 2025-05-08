@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { FC } from 'react';
@@ -13,29 +14,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SignInForm from './sign-in-form';
 import SignUpForm from './sign-up-form';
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast'; // Import useToast
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation'; // Added for potential future use within dialog
 
 interface AuthDialogProps {
   trigger: React.ReactNode;
   initialTab?: 'signin' | 'signup';
+  onAuthSuccessRedirect?: string; // Optional redirect path after success
 }
 
-const AuthDialog: FC<AuthDialogProps> = ({ trigger, initialTab = 'signin' }) => {
+const AuthDialog: FC<AuthDialogProps> = ({ trigger, initialTab = 'signin', onAuthSuccessRedirect }) => {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
-  const { toast } = useToast(); // Initialize useToast
+  const { toast } = useToast();
+  const router = useRouter(); // Added for potential future use
 
-  const handleAuthSuccess = () => {
-    setOpen(false); // Close dialog on successful sign-in
+  // Note: SignInForm and SignUpForm now handle their own redirection.
+  // This dialog's success handlers are simplified.
+  const handleSignInSuccess = () => {
+    setOpen(false); 
+    if (onAuthSuccessRedirect) router.push(onAuthSuccessRedirect);
+    // SignInForm will redirect to /dashboard by default
   };
   
   const handleSignUpSuccess = () => {
-    toast({ 
-      title: 'Account Created!',
-      description: 'Please sign in with your new credentials.',
-    });
-    setActiveTab('signin'); // Switch to sign-in tab
-    // Don't close dialog immediately after sign-up, let user sign in.
+    // SignUpForm will redirect to /login by default
+    // Toast is handled in SignUpForm
+    // This logic could be used to switch tabs if SignUpForm didn't redirect
+    // For now, it might not be strictly necessary if SignUpForm always redirects.
+    // setActiveTab('signin'); 
+    setOpen(false); // Close dialog after sign up IF it's still open
   };
 
 
@@ -59,10 +67,12 @@ const AuthDialog: FC<AuthDialogProps> = ({ trigger, initialTab = 'signin' }) => 
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
           <TabsContent value="signin" className="pt-6">
-            <SignInForm onSignInSuccess={handleAuthSuccess} />
+            {/* SignInForm now redirects internally. onSignInSuccess prop is for dialog-specific actions like closing. */}
+            <SignInForm /> 
           </TabsContent>
           <TabsContent value="signup" className="pt-6">
-            <SignUpForm onSignUpSuccess={handleSignUpSuccess} />
+            {/* SignUpForm now redirects internally. onSignUpSuccess prop is for dialog-specific actions. */}
+            <SignUpForm />
           </TabsContent>
         </Tabs>
       </DialogContent>
