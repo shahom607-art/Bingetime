@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useContext, createContext, type ReactNode } from 'react';
 import { useAuthState } from './use-auth-state';
 import { getUserProfile, updateUserWatchlist, syncUserProfile } from '@/lib/firebase/firestore';
+import { auth as firebaseAuthInstance, db as firebaseDbInstance } from '@/lib/firebase/config'; // Aliased imports
 import type { Media } from '@/services/tmdb';
 import type { UserProfile, GuestData } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +22,7 @@ const WatchlistContext = createContext<WatchlistContextType | undefined>(undefin
 const GUEST_STORAGE_KEY = 'bingeTimeGuestData';
 
 export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: authLoading } = useAuthState();
+  const { user, loading: authLoading, error: authError } = useAuthState();
   const [watchList, setWatchList] = useState<Media[]>([]);
   const [totalWatchTime, setTotalWatchTime] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -29,6 +30,7 @@ export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   const loadGuestData = useCallback(() => {
+    setLoading(true);
     try {
       const guestDataString = localStorage.getItem(GUEST_STORAGE_KEY);
       if (guestDataString) {
@@ -64,18 +66,35 @@ export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       return;
     }
+    
+    if (authError) {
+      setError(authError);
+      setLoading(false);
+      // If auth fails, fall back to guest data or show error
+      console.warn("Auth error detected, watchlist may rely on guest data or be unavailable.");
+      loadGuestData(); // Attempt to load guest data
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     if (user) {
+      if (!firebaseAuthInstance || !firebaseDbInstance) {
+        console.warn('Firebase not initialized. Cannot load user watchlist from cloud.');
+        setError(new Error('Firebase not available. Cloud watchlist functionality disabled.'));
+        setLoading(false);
+        // Potentially load guest data here as a fallback if desired, or clear list
+        setWatchList([]); 
+        setTotalWatchTime(0);
+        return;
+      }
       getUserProfile(user.uid)
         .then(profile => {
           if (profile) {
             setWatchList(profile.watchList || []);
             setTotalWatchTime(profile.totalWatchTime || 0);
           } else {
-            // New user, ensure profile is created or use defaults
             setWatchList([]);
             setTotalWatchTime(0);
           }
@@ -89,7 +108,7 @@ export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
     } else {
       loadGuestData();
     }
-  }, [user, authLoading, loadGuestData, toast]);
+  }, [user, authLoading, authError, loadGuestData, toast]);
 
   const addItemToWatchlist = async (item: Media) => {
     setError(null);
@@ -105,6 +124,13 @@ export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
     setTotalWatchTime(newTotalWatchTime);
 
     if (user) {
+      if (!firebaseAuthInstance || !firebaseDbInstance) {
+        console.warn('Firebase not initialized. Cannot add item to cloud watchlist.');
+        setError(new Error('Firebase not available. Item saved locally for now.'));
+        saveGuestData(newWatchList, newTotalWatchTime); // Save to guest as fallback
+        toast({ title: "Saved Locally", description: `${item.title} saved to guest session. Sign in to sync.`, variant: "default" });
+        return;
+      }
       try {
         await updateUserWatchlist(user.uid, item, 'add');
         toast({ title: "Added to Watchlist", description: `${item.title} has been added.` });
@@ -112,8 +138,7 @@ export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to add item to Firestore", e);
         setError(e as Error);
         toast({ title: "Error", description: "Could not add item to your cloud watchlist.", variant: "destructive" });
-        // Rollback optimistic update
-        setWatchList(watchList);
+        setWatchList(watchList); // Rollback optimistic update
         setTotalWatchTime(totalWatchTime);
       }
     } else {
@@ -134,6 +159,13 @@ export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
     setTotalWatchTime(newTotalWatchTime);
 
     if (user) {
+      if (!firebaseAuthInstance || !firebaseDbInstance) {
+        console.warn('Firebase not initialized. Cannot remove item from cloud watchlist.');
+        setError(new Error('Firebase not available. Item removed locally for now.'));
+        saveGuestData(newWatchList, newTotalWatchTime); // Save to guest as fallback
+        toast({ title: "Removed Locally", description: `${itemToRemove.title} removed from guest session.`, variant: "default" });
+        return;
+      }
       try {
         await updateUserWatchlist(user.uid, itemToRemove, 'remove');
         toast({ title: "Removed from Watchlist", description: `${itemToRemove.title} has been removed.` });
@@ -141,8 +173,7 @@ export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to remove item from Firestore", e);
         setError(e as Error);
         toast({ title: "Error", description: "Could not remove item from your cloud watchlist.", variant: "destructive" });
-        // Rollback optimistic update
-        setWatchList(watchList);
+        setWatchList(watchList); // Rollback optimistic update
         setTotalWatchTime(totalWatchTime);
       }
     } else {
@@ -151,15 +182,12 @@ export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  // Sync local storage to Firestore on login
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user && !authLoading && firebaseAuthInstance && firebaseDbInstance) {
       const guestDataString = localStorage.getItem(GUEST_STORAGE_KEY);
       if (guestDataString) {
         const guestData: GuestData = JSON.parse(guestDataString);
         if (guestData.watchList.length > 0 || guestData.totalWatchTime > 0) {
-          // Merge guest data with Firestore data. A simple strategy: add all guest items not already present.
-          // This could be more sophisticated (e.g., conflict resolution).
           getUserProfile(user.uid).then(async (profile) => {
             let mergedWatchList = profile?.watchList || [];
             let mergedTotalWatchTime = profile?.totalWatchTime || 0;
@@ -171,23 +199,26 @@ export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
               }
             });
             
-            if (mergedWatchList.length !== (profile?.watchList.length || 0)) {
+            if (mergedWatchList.length !== (profile?.watchList.length || 0) || mergedTotalWatchTime !== (profile?.totalWatchTime || 0) ) {
               try {
                 await syncUserProfile(user.uid, { watchList: mergedWatchList, totalWatchTime: mergedTotalWatchTime });
                 setWatchList(mergedWatchList);
                 setTotalWatchTime(mergedTotalWatchTime);
-                localStorage.removeItem(GUEST_STORAGE_KEY); // Clear guest data after sync
+                localStorage.removeItem(GUEST_STORAGE_KEY);
                 toast({ title: "Data Synced", description: "Your local watchlist has been merged with your account." });
               } catch (e) {
                 console.error("Error syncing guest data to Firestore:", e);
                 toast({ title: "Sync Error", description: "Could not sync local data.", variant: "destructive" });
               }
             } else {
-               localStorage.removeItem(GUEST_STORAGE_KEY); // Clear if no new items to merge
+               localStorage.removeItem(GUEST_STORAGE_KEY);
             }
+          }).catch(e => {
+            console.error("Error fetching profile during guest data sync:", e);
+            toast({ title: "Sync Error", description: "Could not retrieve profile to sync local data.", variant: "destructive" });
           });
         } else {
-            localStorage.removeItem(GUEST_STORAGE_KEY); // Clear if guest data is empty
+            localStorage.removeItem(GUEST_STORAGE_KEY);
         }
       }
     }

@@ -7,21 +7,22 @@ import { useWatchlist } from '@/hooks/use-watchlist';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { Button } from '@/components/ui/button';
 import { signInWithGoogle } from '@/lib/firebase/auth';
-import { Loader2, LogIn } from 'lucide-react';
+import { Loader2, LogIn, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function HomePage() {
-  const { totalWatchTime, loading: watchlistLoading } = useWatchlist();
-  const { user, loading: authLoading } = useAuthState();
+  const { totalWatchTime, loading: watchlistLoading, error: watchlistError } = useWatchlist();
+  const { user, loading: authLoading, error: authError } = useAuthState();
   const { toast } = useToast();
 
   const handleSignIn = async () => {
     try {
       await signInWithGoogle();
       toast({ title: 'Signed In', description: 'Welcome to BingeTime!' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in failed:', error);
-      toast({ title: 'Sign In Failed', description: 'Could not sign you in. Please try again.', variant: 'destructive' });
+      toast({ title: 'Sign In Failed', description: error.message || 'Could not sign you in. Please try again.', variant: 'destructive' });
     }
   };
 
@@ -33,6 +34,22 @@ export default function HomePage() {
       </div>
     );
   }
+
+  if (authError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-15rem)]">
+        <Alert variant="destructive" className="max-w-lg">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertTitle>Authentication Error</AlertTitle>
+          <AlertDescription>
+            {authError.message || "Could not connect to authentication services. Please ensure your Firebase configuration is correct if you are the developer."}
+            <p className="mt-2 text-xs">If this issue persists, please contact support.</p>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex flex-col items-center space-y-10">
@@ -51,7 +68,7 @@ export default function HomePage() {
           <p className="text-muted-foreground mb-4">
             Guests can track their time, but signing in with Google syncs your watchlist across devices.
           </p>
-          <Button onClick={handleSignIn} size="lg">
+          <Button onClick={handleSignIn} size="lg" disabled={!!authError}>
             <LogIn className="mr-2 h-5 w-5" /> Sign In with Google
           </Button>
         </section>
@@ -64,6 +81,16 @@ export default function HomePage() {
       <section className="w-full">
         <TotalTimeDisplay totalSeconds={totalWatchTime} />
       </section>
+      
+      {watchlistError && (
+         <Alert variant="destructive" className="w-full max-w-2xl mx-auto">
+           <AlertTriangle className="h-5 w-5" />
+           <AlertTitle>Watchlist Error</AlertTitle>
+           <AlertDescription>
+             {watchlistError.message || "Could not load your watchlist at the moment."}
+           </AlertDescription>
+         </Alert>
+      )}
 
       <section className="w-full">
         <Watchlist />

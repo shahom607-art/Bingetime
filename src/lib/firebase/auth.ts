@@ -1,5 +1,5 @@
 import { GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth, db } from './config';
+import { auth as firebaseAuthInstance, db as firebaseDbInstance } from './config'; // Aliased imports
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
 import type { Media } from '@/services/tmdb';
@@ -7,12 +7,15 @@ import type { Media } from '@/services/tmdb';
 const provider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async (): Promise<UserProfile | null> => {
+  if (!firebaseAuthInstance || !firebaseDbInstance) {
+    console.error("Firebase Auth or Firestore not initialized. Cannot sign in with Google.");
+    throw new Error("Firebase not configured. Sign-in unavailable.");
+  }
   try {
-    const result = await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(firebaseAuthInstance, provider);
     const user = result.user;
     if (user) {
-      // Check if user exists in Firestore, if not, create a new profile
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(firebaseDbInstance, 'users', user.uid);
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {
         const newUserProfile: UserProfile = {
@@ -26,7 +29,6 @@ export const signInWithGoogle = async (): Promise<UserProfile | null> => {
         await setDoc(userRef, { ...newUserProfile, createdAt: serverTimestamp() });
         return newUserProfile;
       } else {
-        // Ensure local UserProfile type matches Firestore data structure
         const firestoreData = userSnap.data();
         return {
           uid: user.uid,
@@ -41,13 +43,22 @@ export const signInWithGoogle = async (): Promise<UserProfile | null> => {
     return null;
   } catch (error) {
     console.error("Error signing in with Google: ", error);
-    throw error;
+    // Check if the error is due to popup being blocked, or other common issues
+    if ((error as any).code === 'auth/popup-closed-by-user') {
+        throw new Error("Sign-in popup was closed. Please try again.");
+    }
+    throw error; // Re-throw other errors
   }
 };
 
 export const signOut = async (): Promise<void> => {
+  if (!firebaseAuthInstance) {
+    console.error("Firebase Auth not initialized. Cannot sign out.");
+    // Depending on desired behavior, could throw or just log
+    return; // Silently fail if auth not ready, or throw new Error("Firebase not configured.");
+  }
   try {
-    await firebaseSignOut(auth);
+    await firebaseSignOut(firebaseAuthInstance);
   } catch (error) {
     console.error("Error signing out: ", error);
     throw error;
