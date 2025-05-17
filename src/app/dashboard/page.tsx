@@ -36,7 +36,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col items-center space-y-10">
       <section className="w-full text-center pt-8 pb-4">
-        <h1 className="text-4xl md:text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent px-1">
+        <h1 className="text-4xl md:text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent px-1 leading-normal">
           Your BingeTime Dashboard
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
