@@ -39,7 +39,7 @@ export default function DashboardPage() {
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
           Your BingeTime Dashboard
         </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
           Search, add, and manage your watched movies and TV shows. See your total watch time update instantly!
         </p>
       </section>
