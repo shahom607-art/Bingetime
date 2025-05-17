@@ -1,28 +1,28 @@
 
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+// import { useEffect } from 'react'; // No longer needed for auth redirect
+// import { useRouter } from 'next/navigation'; // No longer needed for auth redirect
 import SearchBar from '@/components/search-bar';
 import TotalTimeDisplay from '@/components/total-time-display';
 import Watchlist from '@/components/watchlist';
 import { useWatchlist } from '@/hooks/use-watchlist';
-import { useAuthState } from '@/hooks/use-auth-state';
+// import { useAuthState } from '@/hooks/use-auth-state'; // Removed
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function DashboardPage() {
   const { totalWatchTime, loading: watchlistLoading, error: watchlistError } = useWatchlist();
-  const { user, loading: authLoading, error: authError } = useAuthState();
-  const router = useRouter();
+  // const { user, loading: authLoading, error: authError } = useAuthState(); // Removed
+  // const router = useRouter(); // Removed
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace('/login');
-    }
-  }, [user, authLoading, router]);
+  // useEffect(() => { // Auth redirection logic removed
+  //   if (!authLoading && !user) {
+  //     router.replace('/login');
+  //   }
+  // }, [user, authLoading, router]);
 
-  if (authLoading || watchlistLoading || (!user && !authError)) { // Also show loading if user is null but no authError yet (during initial redirect phase)
+  if (watchlistLoading) { // Only check watchlistLoading now
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-15rem)]">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -31,28 +31,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (authError) {
-    // This case should ideally be handled by redirecting to login,
-    // but if an error occurs after initial load or during auth state change, show it.
-     router.replace('/login'); // Force redirect on auth error
-     return (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-15rem)]">
-         <Loader2 className="h-16 w-16 animate-spin text-primary" />
-         <p className="mt-4 text-lg text-muted-foreground">Redirecting...</p>
-       </div>
-     );
-  }
-  
-  // If user is null after loading and no authError, it means redirect should have happened.
-  // This is a fallback or for brief moments before redirect takes effect.
-  if (!user) {
-     return (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-15rem)]">
-         <Loader2 className="h-16 w-16 animate-spin text-primary" />
-         <p className="mt-4 text-lg text-muted-foreground">Authenticating...</p>
-       </div>
-     );
-  }
+  // authError handling removed
 
   return (
     <div className="flex flex-col items-center space-y-10">
@@ -78,7 +57,7 @@ export default function DashboardPage() {
            <AlertTriangle className="h-5 w-5" />
            <AlertTitle>Watchlist Error</AlertTitle>
            <AlertDescription>
-             {watchlistError.message || "Could not load your watchlist at the moment."}
+             {watchlistError.message || "Could not load your watchlist at the moment. Data is stored in your browser's local storage."}
            </AlertDescription>
          </Alert>
       )}
