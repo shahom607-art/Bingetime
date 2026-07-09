@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useAuthState } from '@/hooks/use-auth-state';
 import SignInForm from '@/components/auth/sign-in-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { BingeTimeLogo } from '@/components/icons/logo';
 

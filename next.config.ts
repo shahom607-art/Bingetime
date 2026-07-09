@@ -1,3 +1,12 @@
+if (typeof window === 'undefined') {
+  Object.defineProperty(globalThis, 'localStorage', {
+    get() {
+      return undefined;
+    },
+    configurable: true,
+  });
+}
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {

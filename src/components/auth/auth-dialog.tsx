@@ -61,7 +61,7 @@ const AuthDialog: FC<AuthDialogProps> = ({ trigger, initialTab = 'signin', onAut
               : "Join BingeTime to track your favorite shows and movies."}
           </DialogDescription>
         </DialogHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full pt-2">
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'signin' | 'signup')} className="w-full pt-2">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>

@@ -42,12 +42,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const unsubscribe = firebaseAuthInstance.onAuthStateChanged(async (firebaseUser) => {
+    const unsubscribe = firebaseAuthInstance.onAuthStateChanged(async (firebaseUser: User | null) => {
       setError(null); 
       if (firebaseUser) {
         setUser(firebaseUser);
         // Fetch profile from Firestore
-        const userDocRef = doc(firebaseDbInstance, 'users', firebaseUser.uid);
+        const userDocRef = doc(firebaseDbInstance!, 'users', firebaseUser.uid);
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
           const firestoreData = userDocSnap.data();
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUserProfile(null);
       }
       setLoading(false);
-    }, (err) => {
+    }, (err: Error) => {
       console.error("Firebase Auth state change error:", err);
       setError(err);
       setLoading(false);

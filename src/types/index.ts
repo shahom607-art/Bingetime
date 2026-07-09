@@ -1,7 +1,14 @@
 
 import type { Media } from '@/services/tmdb';
 
-// UserProfile is no longer needed as Firebase Auth is removed.
+export interface UserProfile {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+  totalWatchTime: number;
+  watchList: Media[];
+}
 
 // Used for guest mode in local storage (now the primary data storage)
 export interface GuestData {
